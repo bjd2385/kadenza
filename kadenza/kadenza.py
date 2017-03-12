@@ -3,6 +3,7 @@ Converts raw Kepler Cadence Data into astronomer-friendly TPF/FFI FITS files.
 
 Author: Geert Barentsen
 """
+
 import os
 import re
 import datetime
@@ -14,6 +15,7 @@ from astropy import log
 from astropy.io import fits
 from astropy.utils.console import ProgressBar
 from tqdm import tqdm
+from glob import glob
 
 from . import __version__
 from . import calibration
@@ -549,16 +551,17 @@ def kadenza_tpf_main(args=None):
                         nargs="?", type=int,
                         help="only produce a TPF file "
                              "for a specific EPIC/KIC target_id")
-    parser.add_argument('cadencefile_list', nargs=1,
+    parser.add_argument('cadencefile_list', type=glob,
                         help="Path to a text file that lists the cadence data "
                              "files to use (one file per line). "
                              "These files are named '*_lcs-targ.fits' for "
                              "long cadence and '*_scs-targ.fits' for short "
                              "cadence.")
-    parser.add_argument('pixelmap_file', nargs=1,
+    parser.add_argument('pixelmap_file', type=glob,
                         help="Path to the pixel mapping reference file. "
                              "This file is named '*_lcm.fits' for long "
                              "cadence and '*_scm.fits' for short cadence.")
+
     args = parser.parse_args(args)
 
     # Allow cadence file to be given rather than a list
@@ -566,8 +569,9 @@ def kadenza_tpf_main(args=None):
         cflist = args.cadencefile_list
     else:
         cflist = args.cadencefile_list[0]
-    factory = TargetPixelFileFactory(cflist,
-                                     args.pixelmap_file[0])
+
+    factory = TargetPixelFileFactory(cflist, args.pixelmap_file[0])
+
     if args.target is None:
         factory.write_all_tpfs()
     else:
@@ -582,15 +586,20 @@ def kadenza_ffi_main(args=None):
                             "which correspond to the different Kepler CCDs. "
                             "The units are counts and all unobserved pixels "
                             "are set to -1.")
-    parser.add_argument('cadence_file', nargs=1,
+
+    # argument globs will be resolved if a relative path is given
+    parser.add_argument('cadence_file', type=glob,
                         help="path to the '*_lcs-targ.fits' cadence data file")
-    parser.add_argument('pixelmap_file', nargs=1,
+
+    parser.add_argument('pixelmap_file', type=glob,
                         help="path to the '*_lcm.fits' "
                              "pixel mapping reference file")
+
     args = parser.parse_args(args)
 
-    factory = FullFrameImageFactory(args.cadence_file[0],
-                                    args.pixelmap_file[0])
+    factory = FullFrameImageFactory(args.cadence_file,
+                                    args.pixelmap_file)
+
     factory.write_ffi()
 
 
